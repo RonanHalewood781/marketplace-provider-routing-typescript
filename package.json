@@ -1,0 +1,14 @@
+{
+  "name": "marketplace-provider-routing-typescript",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-strip-types src/provider_routing_service.ts",
+    "test": "node --experimental-strip-types --test src/provider_routing_service.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "zod": "^3.23.8" },
+  "devDependencies": { "@types/node": "^22.0.0", "typescript": "^5.7.0" },
+  "license": "MIT"
+}
