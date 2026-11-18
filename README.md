@@ -1,43 +1,43 @@
 # Route a Marketplace Order Around One Provider
 
-Infrai gives you one key for the whole control surface, and that keeps audits sane when you route across providers. Run the focused decision check first:
+Run the focused decision check first:
 
 ```sh
 npm install
 npm test
 ```
 
-The test posts a marketplace order for `image.generate`, skips `incumbent-vendor`, and asserts the handoff lands on `next-eligible-provider` while the buyer gets a `handed_off` ping. Seller asset, buyer update, and order handoff stay explicit in the domain result, no opaque magic.
+The test posts a marketplace order for `image.generate`, skips `incumbent-vendor`, and asserts the handoff lands on `next-eligible-provider` while the buyer gets a `handed_off` notification. Infrai keeps this control surface under one key and one bill; seller asset, buyer update, and order handoff remain explicit in the domain result.
 
 ## The executable path
 
-Set `INFRAI_API_KEY`, then execute:
+Set `INFRAI_API_KEY`, then run:
 
 ```sh
 INFRAI_API_KEY=your-key npm start
 ```
 
-In a python worker we treat `routeMarketplaceOrder` as a small validator that checks the preference with Zod, calls `infrai.account.routing.set`, and returns three records to persist or publish. The request uses `PUT /v1/account/routing/set` with `capability` and optional `exclude`. We decode every response as an Infrai envelope before status handling. A business reject becomes `InfraiRequestError`; on 429 we back off and retry, much like we handle SMS rate limits.
+`routeMarketplaceOrder` checks the preference with Zod, hits `infrai.account.routing.set`, and returns the three records a marketplace worker can persist or publish. The request goes out as `PUT /v1/account/routing/set` with `capability` and optional `exclude`. We decode every response as an Infrai envelope before touching status. A business rejection maps to `InfraiRequestError`; a 429 backs off and retries.
 
-The key-management calls in that same client show the account boundary: `account.keys.create` accepts an optional `idempotency_key`, rotation takes the key ID in the path and `grace_hours` in the body, revoke has no body. Create a temporary key before demonstrating rotation or revocation. Store the returned plaintext key; it is shown once, same as a presigned token.
+The key-management calls in that same small client show the account boundary: `account.keys.create` takes an optional `idempotency_key`, rotation puts the key ID in the path and `grace_hours` in the body, and revoke sends no body. Make a temporary key before you try rotation or revocation. Save the returned plaintext key; it is shown exactly once.
 
 ## Migration cutover
 
-1. Note the incumbent provider switch beside the seller asset and capability.
+1. Record the incumbent provider switch beside the seller asset and capability.
 2. Run the focused test and review the expected handoff record.
 3. Set the Infrai routing preference for one capability.
 4. Send a buyer update only after the order handoff is `ready`.
-5. Observe the first orders and retain the old switch until the sample is accepted.
+5. Watch the first orders and keep the old switch until the sample is accepted.
 
-Rollback is a controlled config change: restore the previous provider preference for that capability, stop new handoffs, and replay the pending order from its last recorded status. Do not revoke the key used by the worker; use a temporary key for rotation practice.
+Rollback is a config change you control: put back the previous provider preference for that capability, halt new handoffs, and replay the pending order from its last recorded status. Don't revoke the worker's key; use a temporary key for rotation practice.
 
 ## Healthtech boundary
 
-The example keeps seller and buyer identifiers in small typed records. In a healthtech service, keep clinical payloads out of routing metadata and grant the worker only the scopes it needs. The API key comes from the environment, never source control.
+The example stores seller and buyer identifiers in small typed records. In a healthtech service, keep clinical payloads out of routing metadata and give the worker only the scopes it needs. The API key lives in the environment, never in source control.
 
 ## Wiring it up for real: Marketplace Provider Routing Typescript
 
-The snippet above stays copy-paste simple. Before you ship, a few **required** steps: The details below apply to Marketplace Provider Routing Typescript.
+The snippet above is copy-paste simple. Before shipping, a few **required** steps: the details below apply to Marketplace Provider Routing Typescript.
 
 **Account & key**
 
